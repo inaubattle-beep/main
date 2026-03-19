@@ -12,8 +12,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
     OPENAI_API_KEY: str = "your-openai-api-key"
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    
+    OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
     OLLAMA_API_KEY: str = "0faf4fbf981c4e24a83d2d5832d5c794.6eqO-KItSxhgpa07RcWJpv_0"
+    
+    LM_STUDIO_BASE_URL: str = "http://127.0.0.1:1234/v1"
+    LM_STUDIO_API_KEY: str = "sk-lm-nrqVNjE0:clpfx2Y7n5bE1Rz2O52Z"
 
     class Config:
         env_file = ".env"
