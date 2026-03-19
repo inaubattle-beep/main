@@ -31,13 +31,14 @@ class LLMRouter:
 
         # 1. Try LM Studio First
         try:
-            return await self._openai_compatible_call(
-                base_url=settings.LM_STUDIO_BASE_URL,
-                api_key=settings.LM_STUDIO_API_KEY,
-                model="model-identifier",
-                messages=messages,
-                max_tokens=max_tokens
-            )
+            if settings.LM_STUDIO_BASE_URL:
+                return await self._openai_compatible_call(
+                    base_url=settings.LM_STUDIO_BASE_URL,
+                    api_key=settings.LM_STUDIO_API_KEY,
+                    model="model-identifier",
+                    messages=messages,
+                    max_tokens=max_tokens
+                )
         except Exception as e:
             print(f"LM Studio Failed: {e}. Trying Ollama.")
 
@@ -48,11 +49,12 @@ class LLMRouter:
                 headers["Authorization"] = f"Bearer {settings.OLLAMA_API_KEY}"
                 
             async with httpx.AsyncClient() as http_client:
+                # Use /api/chat if it's a message stream, or /api/generate for single prompt
                 res = await http_client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
                     headers=headers,
                     json={
-                        "model": "llama3",
+                        "model": settings.OLLAMA_MODEL,
                         "prompt": f"{system_prompt}\n\n{prompt}",
                         "stream": False,
                         "options": {
@@ -69,13 +71,14 @@ class LLMRouter:
 
         # 3. Fallback to OpenAI
         try:
-            return await self._openai_compatible_call(
-                base_url="https://api.openai.com/v1",
-                api_key=settings.OPENAI_API_KEY,
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens
-            )
+            if settings.OPENAI_API_KEY:
+                return await self._openai_compatible_call(
+                    base_url="https://api.openai.com/v1",
+                    api_key=settings.OPENAI_API_KEY,
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens
+                )
         except Exception as last_err:
             print(f"All LLM generation routes failed: {last_err}")
             return "Error: All LLM generation routes failed."

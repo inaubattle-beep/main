@@ -2,7 +2,6 @@ import asyncio
 from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update
 from memory.models import Task, TaskState
 from memory.database import AsyncSessionLocal
 from core.llm_router import get_llm_response
@@ -25,7 +24,7 @@ class TaskManager:
             
             for task in tasks:
                 # Simulate task execution step
-                if "API_REQUEST" in task.description and task.pending_approval_request is None:
+                if task.description and "API_REQUEST" in task.description and task.pending_approval_request is None:
                     task.state = TaskState.WAITING_FOR_USER
                     task.pending_approval_request = "Requires human to approve API request: " + task.description
                     db.add(task)
@@ -33,7 +32,7 @@ class TaskManager:
                     continue
                 
                 # Else process via LLM Router
-                response = await get_llm_response(prompt=task.description)
+                response = await get_llm_response(prompt=task.description or "Process task")
                 task.result = response
                 task.state = TaskState.COMPLETED
                 db.add(task)

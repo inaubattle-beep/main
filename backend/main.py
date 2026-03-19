@@ -7,6 +7,7 @@ from core.task_manager import task_manager
 from memory.models import User
 from auth.security import get_password_hash
 from sqlalchemy.future import select
+from config.settings import settings
 import asyncio
 
 @asynccontextmanager
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
             
         await load_agents_from_config(db, config_path="agents_config.json")
         
-    # Start Execution Loop
+    # Start Task Execution Loop
     app.state.task_loop = asyncio.create_task(task_manager.start_loop())
     
     yield
@@ -37,9 +38,29 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-app = FastAPI(title="AI OS Layer", lifespan=lifespan)
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="AI Operating System Layer with Failover LLM and n8n Integration",
+    version=settings.VERSION,
+    debug=settings.DEBUG,
+    lifespan=lifespan
+)
 
+# Include Routers
 app.include_router(api_router, prefix="/api")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "env": settings.APP_ENV}
+
+@app.get("/")
+async def root():
+    return {
+        "message": "AI OS Backend Operational",
+        "docs": "/docs",
+        "llm_primary": "OpenAI" if settings.OPENAI_API_KEY else "Ollama (Local)",
+        "llm_secondary": "Ollama (Local)"
+    }
 
 if __name__ == "__main__":
     import uvicorn
