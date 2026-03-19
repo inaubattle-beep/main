@@ -1,29 +1,43 @@
 import os
 import httpx
-from openai import AsyncOpenAI
 from config.settings import settings
 
 class LLMRouter:
     def __init__(self):
-        self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.lm_studio_client = AsyncOpenAI(
-            base_url=settings.LM_STUDIO_BASE_URL,
-            api_key=settings.LM_STUDIO_API_KEY
-        )
+        # We use httpx directly to avoid openai/pydantic-core build dependencies on minimal environments
+        pass
+
+    async def _openai_compatible_call(self, base_url: str, api_key: str, model: str, messages: list, max_tokens: int):
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens
+        }
+        async with httpx.AsyncClient() as client:
+            res = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=60)
+            res.raise_for_status()
+            data = res.json()
+            return data["choices"][0]["message"]["content"]
 
     async def generate(self, prompt: str, system_prompt: str = "You are a helpful AI OS agent.", model="gpt-4", max_tokens=1024):
-        # 1. Try LM Studio First (OpenAI Compatible)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+
+        # 1. Try LM Studio First
         try:
-            response = await self.lm_studio_client.chat.completions.create(
-                model="model-identifier", # LM Studio often ignores this but requires a string
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=max_tokens,
-                timeout=30
+            return await self._openai_compatible_call(
+                base_url=settings.LM_STUDIO_BASE_URL,
+                api_key=settings.LM_STUDIO_API_KEY,
+                model="model-identifier",
+                messages=messages,
+                max_tokens=max_tokens
             )
-            return response.choices[0].message.content
         except Exception as e:
             print(f"LM Studio Failed: {e}. Trying Ollama.")
 
@@ -55,19 +69,16 @@ class LLMRouter:
 
         # 3. Fallback to OpenAI
         try:
-            response = await self.openai_client.chat.completions.create(
+            return await self._openai_compatible_call(
+                base_url="https://api.openai.com/v1",
+                api_key=settings.OPENAI_API_KEY,
                 model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=max_tokens,
-                timeout=30
+                messages=messages,
+                max_tokens=max_tokens
             )
-            return response.choices[0].message.content
         except Exception as last_err:
             print(f"All LLM generation routes failed: {last_err}")
             return "Error: All LLM generation routes failed."
 
 llm_router = LLMRouter()
-get_llm_response = llm_router.generate  # Alias for backward compatibility if needed
+get_llm_response = llm_router.generate
