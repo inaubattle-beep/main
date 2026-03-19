@@ -52,6 +52,9 @@ def collect_groups(root: Path, target_patterns=None) -> dict:
     for dirpath, dirnames, filenames in os.walk(root):
         for name in filenames:
             p = Path(dirpath) / name
+            # Skip virtual environments to avoid huge, irrelevant duplicates
+            if any(str(part).lower() in {".venv", "venv"} for part in p.parts):
+                continue
             if not is_text_file(p):
                 continue
             # Apply optional target pattern filter
