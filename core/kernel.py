@@ -5,7 +5,7 @@ import subprocess
 from typing import List, Optional
 from core.autonomy import AutonomyEngine
 
-from core.agent_manager import Agent
+from memory.models import Agent
 from core.task_manager import TaskQueue
 from core.llm_router import llm_router
 from memory.memory_store import MemoryStore

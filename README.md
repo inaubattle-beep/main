@@ -1,60 +1,66 @@
-# AIOS OpenCode Repository Hygiene Toolkit
+# AIOS - Artificial Intelligence Operating System
 
-A collection of lightweight tooling to help keep a repo clean, deduplicate identical content, consolidate dependencies, and unify docker-compose configurations. Includes a minimal GOD AGI Agent to orchestrate tasks.
+A powerful, autonomous multi-agent framework designed to orchestrate complex tasks, build programs, and manage system resources. At its core is the **God AGI Agent**, a super-privileged entity capable of full system interaction and autonomous problem-solving.
+
+## Core Features
+
+### 1. God AGI Agent
+The **God AGI Agent** is the central orchestrator of the system. It possesses "superpowers" to:
+- **Execute Shell Commands:** Run any terminal command across the system.
+- **File System Control:** Read, write, and modify files to build and deploy programs.
+- **Autonomous Planning:** Use advanced LLM reasoning to decompose high-level goals into executable steps.
+- **Dynamic Agent Creation:** Spawn and manage specialized sub-agents based on task requirements.
+
+### 2. Multi-Agent Orchestration
+- **Agent Manager:** Handles registration, roles, and permissions (RBAC) for all agents.
+- **Task Queue:** A robust asynchronous queue for managing and prioritizing system tasks.
+- **Autonomy Engine:** Periodically generates self-improvement tasks to enhance system reliability and performance.
+
+### 3. Repository Hygiene & Tooling
+- **Deduplication:** Identify and merge duplicate content across the codebase.
+- **Dependency Consolidation:** Merge multiple `requirements.txt` into a single root file.
+- **Docker Unification:** Consolidate fragmented `docker-compose` files into a unified configuration.
 
 ## Quick Start
 
-- Prerequisites:
-  - Python 3.8+ installed
-  - Optional: Docker and Docker Compose (for container-based workflows)
-- Per-project Node scaffolding (optional)
-  - Node version pin: `.nvmrc` (e.g., 20.4.0)
-  - Docker-based Node scaffolding: `Dockerfile.node`, `docker-compose.node.yml`
-- GOD AGI Agent (optional): `agents/god_agi_agent.py` (skeleton)
+### Prerequisites
+- Python 3.9+
+- OpenAI API Key or Local Ollama (llama3)
+- Docker (optional, for containerized workflows)
 
-## How to run the available workflows
+### Installation
+1. Clone the repository.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Configure your environment in `.env`.
 
-Deduplicate files and summarize program purpose (dry-run)
-```
-python tools/deduplicate_and_summarize.py --root . --dry-run --summary-output program_purpose.md
-```
-
-Merge duplicates (destructive) — use with care
-```
-python tools/deduplicate_and_summarize.py --root . --merge-duplicates
-```
-
-Consolidate requirements into a single root file (dry-run)
-```
-python tools/merge_requirements.py --root . --dry-run --output requirements.txt
+### Running the God AGI Agent
+To launch the autonomous God Agent:
+```bash
+python scripts/run_god_agent.py
 ```
 
-Merge all docker-compose files into a single merged file (dry-run)
+### Running Hygiene Tools
+**Deduplicate and summarize (dry-run):**
+```bash
+python tools/deduplicate_and_summarize.py --root . --dry-run
 ```
-python tools/merge_docker_compose.py --root . --dry-run --output docker-compose.all.yml
+
+**Consolidate requirements:**
+```bash
+python tools/merge_requirements.py --root . --output requirements.txt
 ```
 
-Node per-project isolation
-- Version pin: create a root file `.nvmrc` with a version (e.g. 20.4.0)
-- Install and switch versions with your preferred tool (nvm on UNIX, nvm-windows on Windows)
-- Install dependencies with `npm ci`
+## Architecture
+- **`core/`**: The heart of the OS, containing the Kernel, God Agent logic, and Task Manager.
+- **`agents/`**: Definitions for specialized task agents and base classes.
+- **`memory/`**: Persistent and ephemeral storage for logs, decisions, and system state.
+- **`backend/`**: FastAPI-based interface for external interaction and monitoring.
 
-Container-based isolation
-- Dockerfile.node and docker-compose.node.yml provide a scaffold for a per-project Node app.
-- Use `docker compose -f docker-compose.node.yml up --build` to start the containerized app.
-
-GOD AGI Agent (skeleton)
-- Path: `agents/god_agi_agent.py`
-- Purpose: plan and execute repo-health tasks (dry-run by default)
-- Run: `python agents/god_agi_agent.py --goals "deduplicate docker-compose" --execute` to perform actions
-
-## Why this exists
-- To provide a consistent baseline for hygiene tasks across the repository: deduplication, dependency consolidation, and configuration unification.
-- To offer a simple, safe way to experiment with automation (via the GOD AGI Agent) without risking the live codebase.
-
-## Contributing
-- Open issues or submit PRs to extend tooling (new patterns, safer dedup rules, or additional merge strategies).
-- Keep changes small, test with dry-run first.
+## Why AIOS?
+AIOS provides a bridge between raw LLM intelligence and actionable system-level execution. It is designed for developers who need more than just a chatbot—it's a platform for building autonomous software engineering pipelines and self-managing systems.
 
 ## License
-- Include license information here if applicable.
+MIT License.
