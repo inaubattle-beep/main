@@ -1,0 +1,11 @@
+agents:
+  - id: agent1
+    role: marketing
+    permissions:
+      api_call: true
+      access_data: true
+  - id: agent2
+    role: finance
+    permissions:
+      api_call: true
+      access_data: false

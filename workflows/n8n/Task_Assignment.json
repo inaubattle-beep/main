@@ -1,0 +1,108 @@
+{
+  "name": "Task Assignment Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assign-task",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "assign-task-webhook"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "task_id",
+              "value": "={{$json[\"body\"][\"task_id\"]}}"
+            },
+            {
+              "name": "status",
+              "value": "assigned"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Task Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://backend:8000/webhooks/n8n/task_update",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "task_id",
+              "value": "={{$node[\"Set Task Status\"].json[\"task_id\"]}}"
+            },
+            {
+              "name": "status",
+              "value": "assigned"
+            },
+            {
+              "name": "result",
+              "value": "{\"message\": \"Task assigned via n8n\"}"
+            }
+          ]
+        },
+        "headerParametersUi": {
+            "parameter": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ]
+        }
+      },
+      "name": "Notify Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Task Status": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

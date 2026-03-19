@@ -1,0 +1,28 @@
+agents:
+  - id: marketing-01
+    username: martha
+    password: martha123
+    role: marketing
+    permissions:
+      - VIEW_DASHBOARD
+      - CREATE_CAMPAIGNS
+  - id: sales-01
+    username: sam
+    password: sam123
+    role: sales
+    permissions:
+      - VIEW_PIPELINE
+      - CREATE_LEADS
+  - id: finance-01
+    username: finance_grey
+    password: finpass
+    role: finance
+    permissions:
+      - VIEW_BUDGET
+      - APPROVE_EXPENSES
+  - id: admin-01
+    username: admin
+    password: adminpass
+    role: admin
+    permissions:
+      - "*"

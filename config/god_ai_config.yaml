@@ -1,0 +1,12 @@
+## God AI Kernel configuration (seed/tasks/agents)
+agents:
+  - id: admin-1
+    username: admin
+    password: adminpass
+    role: admin
+    permissions:
+      - all
+tasks:
+  - id: task-1
+    description: Seed example task
+    status: PENDING

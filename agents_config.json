@@ -1,0 +1,18 @@
+{
+  "agents": [
+    {
+      "id": "agent_001",
+      "username": "marketing_agent",
+      "password": "agentpassword123",
+      "role": "marketing",
+      "permissions": ["generate_content", "post_social_media"]
+    },
+    {
+      "id": "agent_002",
+      "username": "finance_agent",
+      "password": "agentpassword123",
+      "role": "finance",
+      "permissions": ["view_reports", "API_REQUEST"]
+    }
+  ]
+}

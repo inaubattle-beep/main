@@ -1,0 +1,13 @@
+@echo off
+echo Starting AI Operating System Layer...
+
+if not exist .env (
+    echo .env file not found. Creating from .env.example...
+    copy .env.example .env
+)
+
+echo Building and starting containers...
+docker-compose up --build -d
+
+echo Services started. Tailing logs...
+docker-compose logs -f
