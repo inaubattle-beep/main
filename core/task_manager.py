@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update
@@ -39,3 +40,18 @@ class TaskManager:
                 await db.commit()
 
 task_manager = TaskManager()
+
+class TaskQueue:
+    def __init__(self):
+        self._queue = asyncio.Queue()
+
+    async def add_task(self, task: Dict[str, Any]):
+        await self._queue.put(task)
+
+    async def get_next(self) -> Optional[Dict[str, Any]]:
+        if self._queue.empty():
+            return None
+        return await self._queue.get()
+
+    def has_tasks(self) -> bool:
+        return not self._queue.empty()
