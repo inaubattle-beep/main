@@ -687,127 +687,70 @@ class GodAGIAgent:
                 "error": str(e)
             }
     
-    async def _execute_step(self, step: Dict) -> Dict[str, Any]:
-        """Execute a single step"""
-        # Implementation would depend on step type
-        return {"step": step, "status": "completed"}
-    
-    async def _execute_agent_task(self, task: TaskSpec) -> Dict[str, Any]:
-        """Execute an agent-related task"""
-        # Implementation for agent tasks
-        return {"task": task.task_id, "status": "agent_task_completed"}
-    
-    async def _execute_code_task(self, task: TaskSpec) -> Dict[str, Any]:
-        """Execute a code-related task"""
-        # Implementation for code tasks
-        return {"task": task.task_id, "status": "code_task_completed"}
-    
-    async def _execute_general_task(self, task: TaskSpec) -> Dict[str, Any]:
-        """Execute a general task"""
-        # Implementation for general tasks
-        return {"task": task.task_id, "status": "general_task_completed"}
-    
-    async def _start_agent(self, agent_id: str):
-        """Start an agent"""
-        # Implementation to start an agent
-        logger.info(f"Starting agent: {agent_id}")
-    
-    async def _monitor_agents(self):
-        """Monitor active agents"""
-        while self.is_running:
-            # Check agent status and restart if needed
-            await asyncio.sleep(60)  # Check every minute
-    
-    async def _self_improvement_loop(self):
-        """Self-improvement loop"""
-        while self.is_running:
-            try:
-                # Analyze performance and improve
-                improvements = await self.self_improvement.analyze_performance(self.task_history)
-                if improvements:
-                    self.config = await self.self_improvement.update_config(improvements)
-                    logger.info(f"Self-improvement: {improvements}")
-                
-                await asyncio.sleep(self.config.self_improvement_interval)
-            except Exception as e:
-                logger.error(f"Self-improvement loop error: {e}")
-                await asyncio.sleep(60)
-    
-    async def _auto_save_loop(self):
-        """Auto-save loop"""
-        while self.is_running:
-            try:
-                self._save_memory()
-                await asyncio.sleep(self.config.auto_save_interval)
-            except Exception as e:
-                logger.error(f"Auto-save error: {e}")
-                await asyncio.sleep(60)
-    
-    def _load_memory(self) -> Dict[str, Any]:
-        """Load agent memory"""
-        if MEMORY_PATH.exists():
-            try:
-                with open(MEMORY_PATH, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.error(f"Failed to load memory: {e}")
-        return {}
-    
-    def _save_memory(self):
-        """Save agent memory"""
-        try:
-            memory_data = {
-                "config": self.config.__dict__,
-                "active_agents": list(self.active_agents.keys()),
-                "task_history": self.task_history[-100:],  # Keep last 100 tasks
-                "learning_history": self.self_improvement.learning_history[-50:],  # Keep last 50
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            
-            with open(MEMORY_PATH, 'w') as f:
-                json.dump(memory_data, f, indent=2)
-                
-        except Exception as e:
-            logger.error(f"Failed to save memory: {e}")
-
-# CLI Interface
-async def main():
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="God AGI Agent")
-    parser.add_argument("--command", required=True, help="Command to execute")
-    parser.add_argument("--execute", action="store_true", help="Execute the command (default: dry run)")
-    parser.add_argument("--mode", choices=["autonomous", "interactive", "simulation"], 
-                       default="autonomous", help="Execution mode")
-    parser.add_argument("--config", help="Path to configuration file")
-    
-    args = parser.parse_args()
-    
-    # Load configuration
-    config = GodAGIConfig()
-    if args.config and Path(args.config).exists():
-        with open(args.config, 'r') as f:
-            config_data = json.load(f)
-            config = GodAGIConfig(**config_data)
-    
-    config.execution_mode = ExecutionMode(args.mode)
-    
-    # Create and start agent
-    god_agent = GodAGIAgent(config)
-    await god_agent.start()
-    
-    try:
-        # Execute command
-        result = await god_agent.execute_command(args.command, args.execute)
-        print(json.dumps(result, indent=2))
+    async def _execute_step(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a single step from the LLM-generated plan"""
+        action = step.get("action", "run_command")
+        params = step.get("params", {})
         
-    except KeyboardInterrupt:
-        logger.info("Received interrupt signal, shutting down...")
-    except Exception as e:
-        logger.error(f"Error executing command: {e}")
-        traceback.print_exc()
-    finally:
-        await god_agent.stop()
+        try:
+            if action == "run_command":
+                cmd = params.get("command")
+                workdir = params.get("workdir", ".")
+                if not SafetyProtocol.check_command_safety(cmd):
+                    return {"status": "failed", "error": "Unsafe command blocked"}
+                
+                returncode, stdout, stderr = run_shell(cmd, workdir)
+                return {
+                    "status": "success" if returncode == 0 else "failed",
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "returncode": returncode
+                }
+            
+            elif action == "create_agent":
+                agent_creator = AgentCreator()
+                return agent_creator.create_agent(**params)
+            
+            elif action == "write_file":
+                path = Path(params["path"])
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(params["content"])
+                return {"status": "success", "path": str(path)}
+            
+            elif action == "execute_code":
+                # Execute Python code in safe environment
+                return await CodeGenerator(llm_client).execute_code(params["code"])
+            
+            return {"status": "failed", "error": f"Unknown action: {action}"}
+        except Exception as e:
+            return {"status": "failed", "error": str(e)}
 
-if __name__ == "__main__":
-    asyncio.run(main())
+
+class GodAGI:
+    """Main God AGI implementation"""
+    def __init__(self, config: GodAGIConfig):
+        self.config = config
+        self.task_manager = TaskManager()
+        self.agent_manager = AgentManager()
+        self.memory = load_memory()
+        
+    async def execute_goals(self, goals: str, execute: bool = False):
+        """Execute goals using LLM-driven planning"""
+        steps = plan_goals(goals)
+        results = []
+        
+        for step in steps:
+            if step["dry_run_only"] and not execute:
+                results.append({"step": step, "status": "dry_run"})
+                continue
+                
+            result = await execute_step(step)
+            results.append({"step": step, "result": result})
+            
+            if result["status"] == "failed":
+                logger.error(f"Step failed: {step['name']}")
+                if self.config.safety_checks_enabled:
+                    break
+        
+        save_memory({**self.memory, "last_execution": datetime.utcnow().isoformat()})
+        return results

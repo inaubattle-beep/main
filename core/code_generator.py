@@ -44,7 +44,6 @@ class ProgrammingLanguage(Enum):
     R = "r"
     JULIA = "julia"
     SCALA = "scala"
-    KOTLIN = "kotlin"
     HTML = "html"
     CSS = "css"
     SQL = "sql"
