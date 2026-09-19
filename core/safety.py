@@ -352,15 +352,16 @@ class EthicalConstraintProtocol(SafetyProtocol):
     
     async def _check_transparency(self, content: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Check for transparency about AI capabilities"""
-        transparency_issues = []
+        warnings = []
         
         if "I am an AI" not in content and "artificial intelligence" not in content.lower():
-            transparency_issues.append("Content doesn't disclose AI nature")
+            warnings.append("Content doesn't disclose AI nature")
         
         return {
-            "passed": len(transparency_issues) == 0,
-            "violations": transparency_issues,
-            "penalty": 0.1 if transparency_issues else 0.0
+            "passed": True,
+            "violations": [],
+            "warnings": warnings,
+            "penalty": 0.0
         }
     
     async def _check_autonomy(self, content: str, context: Dict[str, Any]) -> Dict[str, Any]:

@@ -18,11 +18,13 @@ from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
+from sqlalchemy import text
 import psutil
 import threading
 
 from core.logger import logger
 from memory.database import AsyncSessionLocal
+from memory.database import Base, engine
 from memory.models import Agent, Task, TaskState
 from core.task_manager import TaskManager
 from core.llm import llm_client
@@ -79,6 +81,9 @@ class AgentManager:
         """Start the agent manager"""
         logger.info("Starting Agent Manager...")
         self.is_running = True
+
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
         
         # Start background tasks
         self.monitoring_task = asyncio.create_task(self._monitor_agents())
@@ -110,6 +115,9 @@ class AgentManager:
                           capabilities: List[str] = None, parent_agent: str = None) -> bool:
         """Create a new agent"""
         try:
+            if isinstance(agent_type, str):
+                agent_type = AgentType(agent_type)
+
             if len(self.agents) >= self.max_agents:
                 logger.error(f"Maximum number of agents ({self.max_agents}) reached")
                 return False
@@ -239,7 +247,7 @@ class AgentManager:
             # Remove from database
             async with AsyncSessionLocal() as db:
                 result = await db.execute(
-                    "DELETE FROM agents WHERE agent_id = :agent_id",
+                    text("DELETE FROM agents WHERE agent_id = :agent_id"),
                     {"agent_id": agent_id}
                 )
                 await db.commit()
@@ -299,11 +307,11 @@ class AgentManager:
             # Get task statistics from database
             async with AsyncSessionLocal() as db:
                 completed_tasks = await db.execute(
-                    "SELECT COUNT(*) FROM tasks WHERE agent_id = :agent_id AND state = 'COMPLETED'",
+                    text("SELECT COUNT(*) FROM tasks WHERE agent_id = :agent_id AND state = 'COMPLETED'"),
                     {"agent_id": agent_id}
                 )
                 failed_tasks = await db.execute(
-                    "SELECT COUNT(*) FROM tasks WHERE agent_id = :agent_id AND state = 'FAILED'",
+                    text("SELECT COUNT(*) FROM tasks WHERE agent_id = :agent_id AND state = 'FAILED'"),
                     {"agent_id": agent_id}
                 )
                 
@@ -372,12 +380,12 @@ class {agent_id.replace('-', '_').title().replace('_', '')}(BaseAgent):
         """Main processing logic for this agent"""
         if not self.is_running:
             self.is_running = True
-            logger.info(f"Agent {self.agent_id} started processing")
+            logger.info(f"Agent {{self.agent_id}} started processing")
         
         try:
             # Agent-specific logic would go here
             # This is where the agent would perform its specialized tasks
-            logger.debug(f"Agent {self.agent_id} processing with capabilities: {self.capabilities}")
+            logger.debug(f"Agent {{self.agent_id}} processing with capabilities: {{self.capabilities}}")
             
             # Example: Perform capability-specific tasks
             if "code_generation" in self.capabilities:
@@ -390,28 +398,28 @@ class {agent_id.replace('-', '_').title().replace('_', '')}(BaseAgent):
             await asyncio.sleep(1)  # Prevent busy waiting
             
         except Exception as e:
-            logger.error(f"Agent {self.agent_id} error: {e}")
+            logger.error(f"Agent {{self.agent_id}} error: {{e}}")
             raise
     
     async def _generate_code(self):
         """Example code generation task"""
-        logger.info(f"Agent {self.agent_id} generating code...")
+        logger.info(f"Agent {{self.agent_id}} generating code...")
         # Implementation would use LLM to generate code
     
     async def _analyze_data(self):
         """Example data analysis task"""
-        logger.info(f"Agent {self.agent_id} analyzing data...")
+        logger.info(f"Agent {{self.agent_id}} analyzing data...")
         # Implementation would analyze data using pandas/numpy
     
     async def _scrape_web(self):
         """Example web scraping task"""
-        logger.info(f"Agent {self.agent_id} scraping web...")
+        logger.info(f"Agent {{self.agent_id}} scraping web...")
         # Implementation would scrape websites using requests/BeautifulSoup
     
     def stop(self):
         """Stop the agent"""
         self.is_running = False
-        logger.info(f"Agent {self.agent_id} stopped")
+        logger.info(f"Agent {{self.agent_id}} stopped")
 
 if __name__ == "__main__":
     agent = {agent_id.replace('-', '_').title().replace('_', '')}()
@@ -421,7 +429,7 @@ if __name__ == "__main__":
         logger.info("Agent interrupted by user")
         agent.stop()
     except Exception as e:
-        logger.error(f"Agent {agent_id} failed: {e}")
+        logger.error(f"Agent {agent_id} failed: {{e}}")
         agent.stop()
 '''
         
@@ -435,7 +443,7 @@ if __name__ == "__main__":
         """Load existing agents from database"""
         try:
             async with AsyncSessionLocal() as db:
-                result = await db.execute("SELECT * FROM agents")
+                result = await db.execute(text("SELECT * FROM agents"))
                 db_agents = result.fetchall()
                 
                 for db_agent in db_agents:

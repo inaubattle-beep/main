@@ -7,12 +7,15 @@ httpx
 python-dotenv
 psycopg2-binary
 sqlalchemy
+aiosqlite
 uvicorn[standard]
 python-jose
 PyYAML
 typing-extensions
 dpath
 bcrypt
+psutil
+numpy
 fastapi==0.110.0
 uvicorn==0.29.0
 asyncpg==0.29.0

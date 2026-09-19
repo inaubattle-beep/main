@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Callable, Union
 import pickle
 import hashlib
 import statistics
+from sqlalchemy import text
 
 from core.llm import llm_client
 from core.logger import logger
@@ -834,7 +835,7 @@ class SelfImprovementEngine:
             # Load experiences from database
             async with AsyncSessionLocal() as db:
                 result = await db.execute(
-                    "SELECT content FROM memory_store WHERE agent_id = 'god_agi' ORDER BY created_at DESC LIMIT 1000"
+                    text("SELECT content FROM memory_store WHERE agent_id = 'god_agi' ORDER BY created_at DESC LIMIT 1000")
                 )
                 stored_experiences = result.fetchall()
                 
@@ -870,7 +871,7 @@ class SelfImprovementEngine:
                 for experience in self.experiences[-100:]:  # Save last 100 experiences
                     # Check if already stored
                     existing = await db.execute(
-                        "SELECT id FROM memory_store WHERE content LIKE :content",
+                        text("SELECT id FROM memory_store WHERE content LIKE :content"),
                         {"content": f"%{experience.experience_id}%"}
                     )
                     if not existing.fetchone():

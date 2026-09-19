@@ -362,6 +362,19 @@ class GodAGIAgent:
         
         # Load memory
         self.memory = self._load_memory()
+
+    def _load_memory(self) -> Dict[str, Any]:
+        """Load persisted agent memory, falling back to an empty store."""
+        if not MEMORY_PATH.exists():
+            return {}
+
+        try:
+            with MEMORY_PATH.open("r", encoding="utf-8") as memory_file:
+                memory = json.load(memory_file)
+            return memory if isinstance(memory, dict) else {}
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning(f"Failed to load agent memory: {exc}")
+            return {}
     
     async def start(self):
         """Start the God AGI Agent"""
@@ -388,6 +401,31 @@ class GodAGIAgent:
                 logger.error(f"Error stopping agent {agent_id}: {e}")
         
         logger.info("God AGI Agent stopped")
+
+    async def _self_improvement_loop(self):
+        while self.is_running:
+            try:
+                await self.self_improvement.run_improvement_cycle()
+            except AttributeError:
+                await asyncio.sleep(self.config.self_improvement_interval)
+            except Exception as exc:
+                logger.error(f"Self-improvement loop failed: {exc}")
+            await asyncio.sleep(self.config.self_improvement_interval)
+
+    async def _auto_save_loop(self):
+        while self.is_running:
+            await asyncio.sleep(self.config.auto_save_interval)
+            self._save_memory()
+
+    async def _monitor_agents(self):
+        while self.is_running:
+            await asyncio.sleep(30)
+
+    def _save_memory(self):
+        try:
+            MEMORY_PATH.write_text(json.dumps(self.memory, indent=2), encoding="utf-8")
+        except OSError as exc:
+            logger.error(f"Failed to save agent memory: {exc}")
     
     async def execute_command(self, command: str, execute: bool = False) -> Dict[str, Any]:
         """Execute a high-level command"""
